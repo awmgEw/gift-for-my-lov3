@@ -267,7 +267,7 @@ function rebuildConstellation() {
     
     constellation.points = Object.keys(pts).map(k => ({
       ...pts[k],
-      s: (k === 'p1' || k === 'p7') ? 2.5 : 1.2
+      s: (k === 'p1' || k === 'p2') ? 2.5 : 1.2
     }));
     
     constellation.lines = linesData;
