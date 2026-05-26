@@ -187,7 +187,8 @@
   let starsVisible = 0;
   let constellationVisible = 0;
   let tapCount = 0;
-  let cakeFrame = 0;
+  let cakeStartTime = 0;
+  let lastFrameTime = performance.now();
   const counterEl = document.getElementById('counter');
 
   let stars = [];
@@ -484,17 +485,21 @@ function rebuildConstellation() {
         counterEl.classList.remove('visible');
         setTimeout(() => {
           state = S.CAKE;
-          cakeFrame = 0;
+          cakeStartTime = performance.now();
           constellationVisible = 0.25;
           buildCake();
-          setTimeout(() => { cakeCandlesLit = true; }, 8000);
+          setTimeout(() => { cakeCandlesLit = true; }, 5000);
           setTimeout(() => {
             state = S.WISH;
             wishPhase = true;
             show(layerWish);
             spawnShooter();
             setTimeout(spawnShooter, 1400);
+<<<<<<< HEAD
           }, 16000);
+=======
+          }, 12000);
+>>>>>>> a2a6350 (fix)
           setTimeout(() => {
             hide(layerWish);
             setTimeout(() => {
@@ -502,7 +507,11 @@ function rebuildConstellation() {
               show(layerFinal);
               setTimeout(() => photoWrap.classList.add('visible'), 2200);
             }, 1400);
+<<<<<<< HEAD
           }, 36000);
+=======
+          }, 22000);
+>>>>>>> a2a6350 (fix)
         }, 2200);
       }
       return;
@@ -651,18 +660,23 @@ function rebuildConstellation() {
       if (sh.age > 220 || sh.x < -40 || sh.x > W + 40 || sh.y > H + 40) shooters.splice(i, 1);
     }
 
+    const now = performance.now();
+    const dt = Math.min(50, now - lastFrameTime);
+    lastFrameTime = now;
+
     if (state === S.CAKE || state === S.WISH || state === S.FINAL) {
-      cakeFrame++;
-      const PHASE_APPEAR = 600;
+      const elapsed = now - cakeStartTime;
+      const PHASE_APPEAR_MS = 3500;
+      const ASSEMBLY_MS = 6500;
       
       for (let i = 0; i < cakeParts.length; i++) {
         const p = cakeParts[i];
         
-        if (cakeFrame < PHASE_APPEAR) {
-          if (cakeFrame > p.delay) {
-            p.alpha = Math.min(1, p.alpha + 0.005);
+        if (elapsed < PHASE_APPEAR_MS) {
+          if (elapsed > p.delay) {
+            p.alpha = Math.min(1, p.alpha + dt / 600);
           }
-          p.tw += p.tws;
+          p.tw += p.tws * (dt / 16.67);
           const flick = 0.6 + Math.sin(p.tw) * 0.4;
           const drawAlpha = p.a * p.alpha * flick;
           if (drawAlpha > 0.02) {
@@ -672,28 +686,31 @@ function rebuildConstellation() {
             ctx.fill();
           }
         } else {
-          p.alpha = Math.min(1, p.alpha + 0.004);
-          if (p.prog < 1) {
-            p.prog = Math.min(1, p.prog + 0.0008);
-            // очень плавный ease-in-out кубический
+          p.alpha = Math.min(1, p.alpha + dt / 400);
+          
+          const assemblyElapsed = elapsed - PHASE_APPEAR_MS;
+          const particleStartDelay = p.delay * 0.3;
+          const particleElapsed = assemblyElapsed - particleStartDelay;
+          
+          if (particleElapsed > 0 && p.prog < 1) {
+            const assemblyTimeForParticle = Math.max(2000, ASSEMBLY_MS - particleStartDelay);
+            p.prog = Math.min(1, particleElapsed / assemblyTimeForParticle);
             const t = p.prog < 0.5
               ? 4 * p.prog * p.prog * p.prog
               : 1 - Math.pow(-2 * p.prog + 2, 3) / 2;
-            // базовая точка на прямой от старта до цели
             const bx = p.sx + (p.tx - p.sx) * t;
             const by = p.sy + (p.ty - p.sy) * t;
-            // амплитуда петли: максимум в середине, ноль на концах
             const amp = p.loopR * Math.sin(t * Math.PI);
             const ang = p.loopPhase + t * p.loopFreq * 6.2832;
-            // плавные широкие дуги
             const ox = Math.cos(ang) * amp + Math.sin(t * 7.3 + p.wobA) * 6 * (1 - t);
             const oy = Math.sin(ang) * amp + Math.sin(t * 5.7 + p.wobB) * 6 * (1 - t);
             p.x = bx + ox;
             p.y = by + oy;
-          } else {
+          } else if (p.prog >= 1) {
             p.x += (p.tx - p.x) * 0.1;
             p.y += (p.ty - p.y) * 0.1;
           }
+          
           let fx = 0, fy = 0;
           let col = p.col;
           if (p.flame && cakeCandlesLit) {
